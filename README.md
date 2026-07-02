@@ -31,6 +31,10 @@ pnpm build      # static export to apps/web/out
 
 ## Deployment
 
-Every push to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`
-(build → static export → `actions/deploy-pages`). The workflow enables Pages
-automatically on first run; the site is served at `https://<user>.github.io/blue-vs-red/`.
+Every push to `main` runs `.github/workflows/deploy.yml`, which builds the static
+export and publishes it to the `gh-pages` branch. The site is served at
+`https://<user>.github.io/blue-vs-red/`.
+
+One-time setup: in the repository **Settings → Pages**, set **Source** to
+*Deploy from a branch* and pick the `gh-pages` branch (root). After that every
+push deploys automatically.
