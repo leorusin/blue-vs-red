@@ -1,5 +1,7 @@
 # Blue vs Red — Battle Simulator
 
+**▶ Play it: <https://leorusin.github.io/blue-vs-red/>**
+
 A realtime battle simulator that runs entirely in the browser. Pick two countries,
 deploy armies and navies on a procedurally generated map, then watch them fight.
 

@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
@@ -15,6 +17,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +39,45 @@ jobs:
           # project site is served at https://<user>.github.io/<repo>/
           NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
 
-      - name: Publish to gh-pages
+      - name: Disable Jekyll
+        run: touch apps/web/out/.nojekyll
+
+      # Enable Pages via the API if it isn't enabled yet (201 created / 409 exists).
+      - name: Enable GitHub Pages
+        id: enable
+        continue-on-error: true
+        run: |
+          code=$(curl -s -o resp.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" \
+            -d '{"build_type":"workflow"}')
+          echo "POST build_type=workflow -> $code"; cat resp.json; echo
+          if [ "$code" = "201" ] || [ "$code" = "409" ]; then exit 0; fi
+          code=$(curl -s -o resp.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" \
+            -d '{"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}')
+          echo "POST build_type=legacy -> $code"; cat resp.json; echo
+          if [ "$code" = "201" ] || [ "$code" = "409" ]; then exit 0; fi
+          exit 1
+
+      - name: Upload Pages artifact
+        if: steps.enable.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/out
+
+      - name: Deploy to Pages
+        if: steps.enable.outcome == 'success'
+        id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      # Fallback path — keeps the gh-pages branch published so a manually
+      # configured "deploy from branch" source also works.
+      - name: Publish to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
