@@ -45,3 +45,50 @@ select {
   border-radius: 8px;
   padding: 5px 8px;
 }
+
+/* start screen: pick a game version */
+.version-split {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.version-panel {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 24px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.version-panel:hover:not(:disabled) {
+  border: none;
+}
+
+.version-panel.classic:hover {
+  background: rgba(79, 121, 201, 0.1);
+}
+
+.version-panel.latest:hover {
+  background: rgba(201, 79, 94, 0.1);
+}
+
+.version-panel + .version-panel {
+  border-left: 1px solid #2b3a55;
+}
+
+@media (max-width: 640px) {
+  .version-split {
+    flex-direction: column;
+  }
+
+  .version-panel + .version-panel {
+    border-left: none;
+    border-top: 1px solid #2b3a55;
+  }
+}

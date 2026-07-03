@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  autoDeploy, BattleMap, canPlace, cappedCasualties, countriesFor, createState, GAME_VERSIONS,
-  GameState, GameVersion, generateMap, placeUnit, removeUnitNear, spentPoints, startBattle,
-  STATS, step, Team, TEAM_BUDGET, UNIT_TYPES, UnitType,
+  autoDeploy, BattleMap, canPlace, cappedCasualties, countriesFor, createState, GameState,
+  GameVersion, generateMap, placeUnit, removeUnitNear, spentPoints, startBattle, STATS, step,
+  Team, TEAM_BUDGET, UNIT_TYPES, UnitType,
 } from '@blue-vs-red/engine';
 import { buildTerrainCanvas, Ghost, render, TEAM_COLORS } from './renderer';
 
@@ -23,20 +23,18 @@ export default function Game() {
   const [ready, setReady] = useState(false);
   const [team, setTeam] = useState<Team>('blue');
   const [unitType, setUnitType] = useState<UnitType>('infantry');
-  const [version, setVersion] = useState<GameVersion>('1.0.1');
-  const countries = countriesFor(version);
-  const [blueCountry, setBlueCountry] = useState(
-    () => countriesFor('1.0.1').findIndex((c) => c.name === 'United States'),
-  );
-  const [redCountry, setRedCountry] = useState(
-    () => countriesFor('1.0.1').findIndex((c) => c.name === 'Ukraine'),
-  );
+  // null until the player picks a version on the start screen
+  const [version, setVersion] = useState<GameVersion | null>(null);
+  const countries = countriesFor(version ?? '1.0.1');
+  const [blueCountry, setBlueCountry] = useState(0);
+  const [redCountry, setRedCountry] = useState(0);
 
   const switchVersion = (v: GameVersion) => {
     setVersion(v);
     const list = countriesFor(v);
     setBlueCountry(Math.max(0, list.findIndex((c) => c.name === 'United States')));
     setRedCountry(Math.max(0, list.findIndex((c) => c.name === 'Ukraine')));
+    newBattle();
   };
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -141,6 +139,57 @@ export default function Game() {
     };
   };
 
+  // start screen — the link opens here; pick a version to enter the game
+  if (version === null) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ textAlign: 'center', padding: '40px 12px 12px' }}>
+          <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 1 }}>
+            <span style={{ color: TEAM_COLORS.blue.main }}>BLUE</span>
+            <span style={{ opacity: 0.6, margin: '0 10px' }}>vs</span>
+            <span style={{ color: TEAM_COLORS.red.main }}>RED</span>
+          </div>
+          <div style={{ fontSize: 14, opacity: 0.6, marginTop: 6 }}>
+            Choose a version to play
+          </div>
+        </div>
+        <div className="version-split">
+          <button className="version-panel classic" onClick={() => switchVersion('0.1.0')}>
+            <span style={{ fontSize: 76 }}>🕹️</span>
+            <span style={{ fontSize: 28, fontWeight: 800 }}>Version 0.1.0</span>
+            <span style={{ fontSize: 15, opacity: 0.65, maxWidth: 340, lineHeight: 1.5 }}>
+              The classic. The original 16 countries, no population limits — pure battle.
+            </span>
+            <span
+              style={{
+                marginTop: 10, padding: '8px 22px', borderRadius: 8,
+                border: '1px solid #4f79c9', background: '#2a4a86', fontWeight: 600,
+              }}
+            >
+              ▶ Play classic
+            </span>
+          </button>
+          <button className="version-panel latest" onClick={() => switchVersion('1.0.1')}>
+            <span style={{ fontSize: 76 }}>✨</span>
+            <span style={{ fontSize: 28, fontWeight: 800 }}>Version 1.0.1</span>
+            <span style={{ fontSize: 15, opacity: 0.65, maxWidth: 340, lineHeight: 1.5 }}>
+              All 197 countries of the world, with real populations — casualties can
+              never exceed a country&apos;s population.
+            </span>
+            <span
+              style={{
+                marginTop: 10, padding: '8px 22px', borderRadius: 8,
+                border: '1px solid #c94f5e', background: '#862a3a', fontWeight: 600,
+              }}
+            >
+              ▶ Play latest
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const state = stateRef.current;
   const phase = state?.phase ?? 'setup';
   const alive = (t: Team) => state?.units.filter((u) => u.team === t).length ?? 0;
@@ -180,6 +229,15 @@ export default function Game() {
             {phase === 'battle' && `Battle raging — t=${Math.floor(state?.time ?? 0)}s`}
             {phase === 'ended' && 'Battle over'}
           </div>
+          <button
+            onClick={() => setVersion(null)}
+            style={{
+              fontSize: 11, marginTop: 4, padding: '2px 10px', opacity: 0.7,
+              background: 'transparent',
+            }}
+          >
+            {version === '0.1.0' ? '🕹️' : '✨'} v{version} — switch
+          </button>
         </div>
         <TeamBadge
           team="red" flag={red.flag} name={red.name}
@@ -245,20 +303,6 @@ export default function Game() {
             padding: '12px 4px',
           }}
         >
-          <select
-            value={version}
-            onChange={(e) => switchVersion(e.target.value as GameVersion)}
-            title="Game version — v0.1.0 is the classic 16-country game, v1.0.1 adds all countries and population caps"
-          >
-            {GAME_VERSIONS.map((v) => (
-              <option key={v} value={v}>
-                {v === '0.1.0' ? '🕹️ v0.1.0 classic' : '✨ v1.0.1'}
-              </option>
-            ))}
-          </select>
-
-          <span style={{ width: 1, height: 24, background: '#2b3a55' }} />
-
           <select value={blueCountry} onChange={(e) => setBlueCountry(+e.target.value)}>
             {countries.map((c, i) => (
               <option key={c.name} value={i}>
