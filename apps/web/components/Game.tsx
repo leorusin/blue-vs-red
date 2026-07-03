@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  autoDeploy, BattleMap, canPlace, COUNTRIES, createState, GameState, generateMap,
-  placeUnit, removeUnitNear, spentPoints, startBattle, STATS, step, Team, TEAM_BUDGET,
-  UNIT_TYPES, UnitType,
+  autoDeploy, BattleMap, canPlace, cappedCasualties, countriesFor, createState, GAME_VERSIONS,
+  GameState, GameVersion, generateMap, placeUnit, removeUnitNear, spentPoints, startBattle,
+  STATS, step, Team, TEAM_BUDGET, UNIT_TYPES, UnitType,
 } from '@blue-vs-red/engine';
 import { buildTerrainCanvas, Ghost, render, TEAM_COLORS } from './renderer';
 
@@ -23,8 +23,21 @@ export default function Game() {
   const [ready, setReady] = useState(false);
   const [team, setTeam] = useState<Team>('blue');
   const [unitType, setUnitType] = useState<UnitType>('infantry');
-  const [blueCountry, setBlueCountry] = useState(0);
-  const [redCountry, setRedCountry] = useState(11);
+  const [version, setVersion] = useState<GameVersion>('1.0.1');
+  const countries = countriesFor(version);
+  const [blueCountry, setBlueCountry] = useState(
+    () => countriesFor('1.0.1').findIndex((c) => c.name === 'United States'),
+  );
+  const [redCountry, setRedCountry] = useState(
+    () => countriesFor('1.0.1').findIndex((c) => c.name === 'Ukraine'),
+  );
+
+  const switchVersion = (v: GameVersion) => {
+    setVersion(v);
+    const list = countriesFor(v);
+    setBlueCountry(Math.max(0, list.findIndex((c) => c.name === 'United States')));
+    setRedCountry(Math.max(0, list.findIndex((c) => c.name === 'Ukraine')));
+  };
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
@@ -132,8 +145,16 @@ export default function Game() {
   const phase = state?.phase ?? 'setup';
   const alive = (t: Team) => state?.units.filter((u) => u.team === t).length ?? 0;
   const spent = (t: Team) => (state ? spentPoints(state, t) : 0);
-  const blue = COUNTRIES[blueCountry];
-  const red = COUNTRIES[redCountry];
+  const blue = countries[blueCountry];
+  const red = countries[redCountry];
+  // the population cap on casualties is a v1.0.1 rule — v0.1.0 plays uncapped
+  const capped = version === '1.0.1';
+  const blueCasualties = capped
+    ? cappedCasualties(state?.casualties.blue ?? 0, blue)
+    : state?.casualties.blue ?? 0;
+  const redCasualties = capped
+    ? cappedCasualties(state?.casualties.red ?? 0, red)
+    : state?.casualties.red ?? 0;
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: 12 }}>
@@ -145,7 +166,8 @@ export default function Game() {
       >
         <TeamBadge
           team="blue" flag={blue.flag} name={blue.name}
-          alive={alive('blue')} casualties={state?.casualties.blue ?? 0}
+          population={capped ? blue.population : undefined}
+          alive={alive('blue')} casualties={blueCasualties}
         />
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1 }}>
@@ -161,7 +183,8 @@ export default function Game() {
         </div>
         <TeamBadge
           team="red" flag={red.flag} name={red.name}
-          alive={alive('red')} casualties={state?.casualties.red ?? 0}
+          population={capped ? red.population : undefined}
+          alive={alive('red')} casualties={redCasualties}
         />
       </div>
 
@@ -204,8 +227,8 @@ export default function Game() {
                     : `${red.name} wins!`}
               </div>
               <div style={{ opacity: 0.7, fontSize: 14, marginBottom: 16 }}>
-                Casualties — {blue.flag} {state.casualties.blue.toLocaleString()} · {red.flag}{' '}
-                {state.casualties.red.toLocaleString()}
+                Casualties — {blue.flag} {blueCasualties.toLocaleString()} · {red.flag}{' '}
+                {redCasualties.toLocaleString()}
               </div>
               <button className="active" onClick={newBattle}>
                 ⚔️ New battle
@@ -222,8 +245,22 @@ export default function Game() {
             padding: '12px 4px',
           }}
         >
+          <select
+            value={version}
+            onChange={(e) => switchVersion(e.target.value as GameVersion)}
+            title="Game version — v0.1.0 is the classic 16-country game, v1.0.1 adds all countries and population caps"
+          >
+            {GAME_VERSIONS.map((v) => (
+              <option key={v} value={v}>
+                {v === '0.1.0' ? '🕹️ v0.1.0 classic' : '✨ v1.0.1'}
+              </option>
+            ))}
+          </select>
+
+          <span style={{ width: 1, height: 24, background: '#2b3a55' }} />
+
           <select value={blueCountry} onChange={(e) => setBlueCountry(+e.target.value)}>
-            {COUNTRIES.map((c, i) => (
+            {countries.map((c, i) => (
               <option key={c.name} value={i}>
                 {c.flag} {c.name}
               </option>
@@ -231,7 +268,7 @@ export default function Game() {
           </select>
           <span style={{ opacity: 0.5 }}>vs</span>
           <select value={redCountry} onChange={(e) => setRedCountry(+e.target.value)}>
-            {COUNTRIES.map((c, i) => (
+            {countries.map((c, i) => (
               <option key={c.name} value={i}>
                 {c.flag} {c.name}
               </option>
@@ -354,14 +391,19 @@ export default function Game() {
   );
 }
 
+const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
+
 function TeamBadge(props: {
   team: Team;
   flag: string;
   name: string;
+  /** omitted in v0.1.0, where populations aren't part of the game */
+  population?: number;
   alive: number;
   casualties: number;
 }) {
   const c = TEAM_COLORS[props.team];
+  const { population } = props;
   return (
     <div
       style={{
@@ -372,7 +414,14 @@ function TeamBadge(props: {
     >
       <span style={{ fontSize: 28 }}>{props.flag}</span>
       <div>
-        <div style={{ fontWeight: 700, color: c.light }}>{props.name}</div>
+        <div style={{ fontWeight: 700, color: c.light }}>
+          {props.name}
+          {population !== undefined && (
+            <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.6, marginLeft: 6 }}>
+              pop {compact.format(population)}
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>
           {props.alive} units · ☠️ {props.casualties.toLocaleString()} casualties
         </div>
