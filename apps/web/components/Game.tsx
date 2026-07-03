@@ -155,34 +155,54 @@ export default function Game() {
         </div>
         <div className="version-split">
           <button className="version-panel classic" onClick={() => switchVersion('0.1.0')}>
-            <span style={{ fontSize: 76 }}>🕹️</span>
-            <span style={{ fontSize: 28, fontWeight: 800 }}>Version 0.1.0</span>
-            <span style={{ fontSize: 15, opacity: 0.65, maxWidth: 340, lineHeight: 1.5 }}>
-              The classic. The original 16 countries, no population limits — pure battle.
+            <span
+              style={{
+                fontSize: 44, fontWeight: 900, letterSpacing: 2,
+                color: TEAM_COLORS.blue.main,
+              }}
+            >
+              BLUE
+            </span>
+            <span style={{ fontSize: 30, fontWeight: 800, color: '#dce4f2' }}>
+              Version 0.1.0
+            </span>
+            <span style={{ fontSize: 15, opacity: 0.8, maxWidth: 340, lineHeight: 1.5 }}>
+              The classic version — the original 16 countries, no population limits.
             </span>
             <span
               style={{
-                marginTop: 10, padding: '8px 22px', borderRadius: 8,
-                border: '1px solid #4f79c9', background: '#2a4a86', fontWeight: 600,
+                marginTop: 12, padding: '10px 26px', borderRadius: 8, fontWeight: 700,
+                color: '#fff', background: TEAM_COLORS.blue.dark,
+                border: `1px solid ${TEAM_COLORS.blue.main}`,
               }}
             >
-              ▶ Play classic
+              ▶ Play 0.1.0
             </span>
           </button>
           <button className="version-panel latest" onClick={() => switchVersion('1.0.1')}>
-            <span style={{ fontSize: 76 }}>✨</span>
-            <span style={{ fontSize: 28, fontWeight: 800 }}>Version 1.0.1</span>
-            <span style={{ fontSize: 15, opacity: 0.65, maxWidth: 340, lineHeight: 1.5 }}>
-              All 197 countries of the world, with real populations — casualties can
-              never exceed a country&apos;s population.
+            <span
+              style={{
+                fontSize: 44, fontWeight: 900, letterSpacing: 2,
+                color: TEAM_COLORS.red.main,
+              }}
+            >
+              RED
+            </span>
+            <span style={{ fontSize: 30, fontWeight: 800, color: '#dce4f2' }}>
+              Version 1.0.1
+            </span>
+            <span style={{ fontSize: 15, opacity: 0.8, maxWidth: 340, lineHeight: 1.5 }}>
+              The new version — more countries (all 197 of the world!) with real
+              populations, so casualties can never exceed a country&apos;s population.
             </span>
             <span
               style={{
-                marginTop: 10, padding: '8px 22px', borderRadius: 8,
-                border: '1px solid #c94f5e', background: '#862a3a', fontWeight: 600,
+                marginTop: 12, padding: '10px 26px', borderRadius: 8, fontWeight: 700,
+                color: '#fff', background: TEAM_COLORS.red.dark,
+                border: `1px solid ${TEAM_COLORS.red.main}`,
               }}
             >
-              ▶ Play latest
+              ▶ Play 1.0.1
             </span>
           </button>
         </div>

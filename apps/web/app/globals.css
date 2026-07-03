@@ -70,12 +70,24 @@ select {
   border: none;
 }
 
+/* left half — BLUE, the old version */
+.version-panel.classic {
+  background: linear-gradient(135deg, #12234d 0%, #0e1a36 60%, #0d1420 100%);
+  color: #93c5fd;
+}
+
 .version-panel.classic:hover {
-  background: rgba(79, 121, 201, 0.1);
+  background: linear-gradient(135deg, #16306b 0%, #122349 60%, #101a2e 100%);
+}
+
+/* right half — RED, the new version */
+.version-panel.latest {
+  background: linear-gradient(225deg, #4d1219 0%, #360e14 60%, #200d10 100%);
+  color: #fca5a5;
 }
 
 .version-panel.latest:hover {
-  background: rgba(201, 79, 94, 0.1);
+  background: linear-gradient(225deg, #6b161f 0%, #491218 60%, #2e1013 100%);
 }
 
 .version-panel + .version-panel {
